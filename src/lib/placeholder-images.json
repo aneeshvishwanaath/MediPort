@@ -1,0 +1,34 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A futuristic medical interface.",
+      "imageUrl": "https://images.unsplash.com/photo-1758691463607-c1220b77aaaa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkb2N0b3IlMjB0ZWNobm9sb2d5fGVufDB8fHx8MTc2NzYxMjUzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor technology"
+    },
+    {
+      "id": "feature-profile",
+      "description": "A close-up of a patient's profile on a tablet.",
+      "imageUrl": "https://images.unsplash.com/photo-1714939722652-71946dfbc8a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwYXRpZW50JTIwcHJvZmlsZXxlbnwwfHx8fDE3Njc1MTIyMTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "patient profile"
+    },
+    {
+      "id": "feature-history",
+      "description": "A doctor reviewing a medical report.",
+      "imageUrl": "https://images.unsplash.com/photo-1758691463084-17ed846d4a50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtZWRpY2FsJTIwcmVwb3J0fGVufDB8fHx8MTc2NzYxMjUzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical report"
+    },
+    {
+      "id": "feature-meds",
+      "description": "A collection of different pills and medications.",
+      "imageUrl": "https://images.unsplash.com/photo-1609720597021-1498d6216a55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwaWxscyUyMG1lZGljYXRpb258ZW58MHx8fHwxNzY3NjEyNTM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pills medication"
+    },
+    {
+      "id": "feature-qr",
+      "description": "A smartphone scanning a QR code on a medical bracelet.",
+      "imageUrl": "https://images.unsplash.com/photo-1559131397-f94da358f7ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxxciUyMGNvZGV8ZW58MHx8fHwxNzY3NjExNDk2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "qr code"
+    }
+  ]
+}

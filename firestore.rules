@@ -1,0 +1,204 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Authenticated user check.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * Used to verify resource ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document.
+     * CRITICAL: Used for all update and delete operations to prevent modifying
+     * or deleting non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Checks if the requesting user has the 'doctor' role.
+     */
+    function isDoctor() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_doctor/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has the 'chemist' role.
+     */
+    function isChemist() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_chemist/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has the 'lab' role.
+     */
+    function isLab() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_lab/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has the 'patient' role.
+     */
+    function isPatient() {
+        return isSignedIn() && exists(/databases/$(database)/documents/roles_patient/$(request.auth.uid));
+    }
+
+    // --------------------------------
+    // User and Role Collections
+    // --------------------------------
+
+    /**
+     * @description Controls access to a user's own account document.
+     * @path /users/{userId}
+     * @allow (create) A new user creating their own account document with a matching ID.
+     * @deny (get) A user trying to read another user's account document.
+     * @principle A user has exclusive control over their own account data. Prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isDoctor();
+      allow list: if isDoctor();
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to role documents. The existence of a document grants the role.
+     * @path /roles_doctor/{userId}, /roles_patient/{userId}, etc.
+     * @allow (create) A signed-in user creating their own role document.
+     * @deny (update) Any user trying to modify a role document after creation.
+     * @principle Roles are self-assigned for this demo application and are immutable once created.
+     */
+    match /roles_doctor/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+    match /roles_patient/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+    match /roles_chemist/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+    match /roles_lab/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
+    }
+
+    // --------------------------------
+    // Top-Level Profile Collections
+    // --------------------------------
+
+    /**
+     * @description Publicly readable doctor profiles. Writable only by the doctor themselves.
+     */
+    match /doctors/{doctorId} {
+      allow read: if isSignedIn();
+      allow create: if isDoctor() && request.auth.uid == doctorId;
+      allow update: if isDoctor() && request.auth.uid == doctorId && resource != null;
+      allow delete: if isDoctor() && request.auth.uid == doctorId && resource != null;
+    }
+
+    /**
+     * @description Publicly readable pharmacy profiles. Writable only by chemists.
+     */
+    match /pharmacies/{pharmacyId} {
+      allow read: if isSignedIn();
+      allow create: if isChemist() && request.auth.uid == pharmacyId;
+      allow update: if isChemist() && request.auth.uid == pharmacyId && resource != null;
+      allow delete: if isChemist() && request.auth.uid == pharmacyId && resource != null;
+    }
+
+    /**
+     * @description Publicly readable lab profiles. Writable only by lab members.
+     */
+    match /diagnosticLabs/{diagnosticLabId} {
+      allow read: if isSignedIn();
+      allow create: if isLab() && request.auth.uid == diagnosticLabId;
+      allow update: if isLab() && request.auth.uid == diagnosticLabId && resource != null;
+      allow delete: if isLab() && request.auth.uid == diagnosticLabId && resource != null;
+    }
+
+
+    // --------------------------------
+    // Top-Level Patient Collection
+    // (replaces /users/{userId}/patients/{patientId})
+    // --------------------------------
+
+    match /patients/{patientId} {
+      // A patient can read their own profile. Doctors, chemists, and labs can read any patient profile.
+      allow get: if isOwner(patientId) || isDoctor() || isChemist() || isLab();
+      // Only doctors should be able to list all patients for their dashboard.
+      allow list: if isDoctor();
+      // A user can create their own patient profile OR a doctor can create one.
+      // The 'ownerId' field MUST match the creator's UID.
+      allow create: if (isPatient() && isOwner(patientId) && request.resource.data.ownerId == request.auth.uid) || (isDoctor() && request.resource.data.ownerId == request.auth.uid);
+      // Only the patient themself can update their core profile.
+      allow update: if isOwner(patientId) && resource.data.ownerId == request.auth.uid;
+      // Only the patient themself can delete their profile.
+      allow delete: if isOwner(patientId) && resource.data.ownerId == request.auth.uid;
+
+      /**
+       * @description Medical reports uploaded for a patient.
+       */
+      match /medicalReports/{medicalReportId} {
+        allow read: if isOwner(patientId) || isDoctor() || isLab();
+        allow list: if isOwner(patientId) || isDoctor() || isLab();
+        allow create: if (isDoctor() || isLab()) && request.resource.data.patientId == patientId;
+        allow update, delete: if false; // Reports are immutable for this demo.
+      }
+
+      /**
+       * @description Prescriptions written for a patient.
+       */
+      match /prescriptions/{prescriptionId} {
+        allow read: if isOwner(patientId) || isDoctor() || isChemist();
+        allow list: if isOwner(patientId) || isDoctor() || isChemist();
+        allow create: if isDoctor() && request.resource.data.patientId == patientId;
+        allow update, delete: if isDoctor() && resource.data.doctorId == request.auth.uid; // Doctor can manage their own prescriptions
+      }
+
+      /**
+       * @description Surgery records for a patient.
+       */
+      match /surgeries/{surgeryId} {
+        allow read: if isOwner(patientId) || isDoctor();
+        allow list: if isOwner(patientId) || isDoctor();
+        allow create: if isOwner(patientId) || isDoctor();
+        allow update: if isOwner(patientId) || isDoctor();
+        allow delete: if isOwner(patientId) || isDoctor();
+      }
+
+      /**
+       * @description A patient's private emergency contacts.
+       */
+      match /emergencyContacts/{emergencyContactId} {
+        allow read: if isOwner(patientId) || isDoctor();
+        allow list: if isOwner(patientId) || isDoctor();
+        allow create: if isOwner(patientId);
+        allow update: if isOwner(patientId);
+        allow delete: if isOwner(patientId);
+      }
+    }
+  }
+}
